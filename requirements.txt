@@ -1,0 +1,3 @@
+# OpenCV 5.0 removed cv2.CascadeClassifier (Haar cascade) used for face detection
+opencv-python>=4.5,<5
+numpy

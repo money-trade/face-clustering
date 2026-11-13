@@ -1,0 +1,4 @@
+# model file is rebuilt by FaceTrain_2.py
+knn_model.npz
+__pycache__/
+*.pyc

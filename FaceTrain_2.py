@@ -8,6 +8,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR = os.path.join(HERE, "ML_Data_Morning")   # โฟลเดอร์ที่เก็บรูปภาพ
 MODEL_PATH = os.path.join(HERE, "knn_model.npz")
 IMG_EXT = (".jpg", ".jpeg", ".png")
+ID_DIGITS = 10   # รหัสนักศึกษาต้องมี 10 หลัก
+
+
+def is_heif(path):
+    """รูปจาก iPhone (HEIF/HEIC) ที่ถูกเปลี่ยนชื่อเป็น .jpg: cv2 อ่านไม่ได้"""
+    with open(path, "rb") as f:
+        head = f.read(12)
+    return head[4:8] == b"ftyp" and head[8:12] in (b"heic", b"heix", b"mif1", b"msf1", b"hevc")
 
 
 def split_name(filename):
@@ -29,13 +37,22 @@ if os.path.exists(DATASET_DIR):
         # รองรับไฟล์ .jpg, .jpeg, .png (ตัวพิมพ์เล็ก/ใหญ่)
         if filename.lower().endswith(IMG_EXT):
             img_path = os.path.join(DATASET_DIR, filename)
-            x = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            # imdecode + fromfile อ่านได้แม้ path มีภาษาไทย (cv2.imread บน Windows อ่านไม่ได้)
+            x = cv2.imdecode(np.fromfile(img_path, np.uint8), cv2.IMREAD_GRAYSCALE)
+            if x is None:
+                if is_heif(img_path):
+                    print(f"  ข้าม {filename}: เป็นไฟล์ HEIF (รูป iPhone) ที่ตั้งชื่อเป็น .jpg ต้องแปลงเป็น .jpg จริงก่อน")
+                else:
+                    print(f"  ข้าม {filename}: อ่านรูปไม่ได้")
+                continue
 
             if x is not None:
                 X_train.append(x.flatten())
 
                 # แยกรหัสกับชื่อเล่น (เช่น "6752300151_Pae.jpg" -> "Pae")
                 sid, nickname = split_name(filename)
+                if not (sid.isdigit() and len(sid) == ID_DIGITS):
+                    print(f"  เตือน: รหัส '{sid}' ไม่ใช่ตัวเลข {ID_DIGITS} หลัก ตรวจชื่อไฟล์ {filename}")
                 ids.append(sid)
                 y_train.append(nickname)
 

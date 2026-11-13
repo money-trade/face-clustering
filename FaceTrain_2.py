@@ -2,6 +2,7 @@ import os
 import re
 import cv2
 import numpy as np
+from face_utils import face_from_photo
 
 # อ้างอิงไฟล์จากโฟลเดอร์ของสคริปต์ รันจากโฟลเดอร์ไหนก็ได้
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +34,7 @@ X_train, y_train, ids = [], [], []
 print("กำลังอ่านรูปภาพจากโฟลเดอร์...")
 
 if os.path.exists(DATASET_DIR):
-    for filename in os.listdir(DATASET_DIR):
+    for filename in sorted(os.listdir(DATASET_DIR)):   # เรียงชื่อไฟล์ ให้ผลเหมือนเดิมทุกครั้ง
         # รองรับไฟล์ .jpg, .jpeg, .png (ตัวพิมพ์เล็ก/ใหญ่)
         if filename.lower().endswith(IMG_EXT):
             img_path = os.path.join(DATASET_DIR, filename)
@@ -46,15 +47,20 @@ if os.path.exists(DATASET_DIR):
                     print(f"  ข้าม {filename}: อ่านรูปไม่ได้")
                 continue
 
-            if x is not None:
-                X_train.append(x.flatten())
+            # รูปแต่ละคนขนาดไม่เท่ากัน (140x180 ถึง 3159x3877) ต้องตัดเฉพาะหน้าให้ขนาดเท่ากันก่อน
+            # ไม่อย่างนั้น np.array(X_train) จะ error "inhomogeneous shape"
+            face = face_from_photo(x)
+            if face is None:
+                print(f"  ข้าม {filename}: หาหน้าไม่เจอ")
+                continue
+            X_train.append(face.flatten())
 
-                # แยกรหัสกับชื่อเล่น (เช่น "6752300151_Pae.jpg" -> "Pae")
-                sid, nickname = split_name(filename)
-                if not (sid.isdigit() and len(sid) == ID_DIGITS):
-                    print(f"  เตือน: รหัส '{sid}' ไม่ใช่ตัวเลข {ID_DIGITS} หลัก ตรวจชื่อไฟล์ {filename}")
-                ids.append(sid)
-                y_train.append(nickname)
+            # แยกรหัสกับชื่อเล่น (เช่น "6752300151_Pae.jpg" -> "Pae")
+            sid, nickname = split_name(filename)
+            if not (sid.isdigit() and len(sid) == ID_DIGITS):
+                print(f"  เตือน: รหัส '{sid}' ไม่ใช่ตัวเลข {ID_DIGITS} หลัก ตรวจชื่อไฟล์ {filename}")
+            ids.append(sid)
+            y_train.append(nickname)
 
     # ชื่อเล่นซ้ำกัน (เช่น First 2 คน) ต่อท้ายด้วยเลข 4 ตัวท้ายของรหัส -> First(0607), First(1115)
     y_train = [f"{n}({s[-4:]})" if y_train.count(n) > 1 and s else n for n, s in zip(y_train, ids)]

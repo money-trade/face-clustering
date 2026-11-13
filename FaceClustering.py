@@ -2,6 +2,7 @@ import os
 import sys
 import cv2
 import numpy as np
+from face_utils import FACE_SIZE
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(HERE, "knn_model.npz")   # สร้างโดย FaceTrain_2.py
@@ -38,7 +39,7 @@ if not os.path.exists(MODEL_PATH):
     sys.exit(1)
 
 data = np.load(MODEL_PATH)
-X_train, y_train = data["X"], data["y"]
+X_train, y_train = data["X"].astype(np.float32), data["y"]
 
 # CAP_DSHOW เปิดกล้องเร็วกว่าบน Windows ส่วนระบบอื่นใช้ค่าเริ่มต้น
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) if os.name == "nt" else cv2.VideoCapture(0)
@@ -57,7 +58,8 @@ while True:
 
     if face_crop.size > 0:
         gray_face = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
-        z = gray_face.flatten()
+        # ปรับแสงแบบเดียวกับตอนเทรน ให้เทียบกันได้
+        z = cv2.equalizeHist(cv2.resize(gray_face, FACE_SIZE)).flatten().astype(np.float32)
 
         if len(X_train) > 0 and z.shape[0] == X_train.shape[1]:
             # เรียกใช้ฟังก์ชันคำนวณความคล้ายคลึง

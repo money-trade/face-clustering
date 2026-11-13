@@ -1,6 +1,10 @@
 import os
+import sys
 import cv2
 import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(HERE, "knn_model.npz")   # สร้างโดย FaceTrain_2.py
 
 
 def knn_similarity(X, y, z, k=5, threshold=3000.0):
@@ -29,14 +33,15 @@ def knn_similarity(X, y, z, k=5, threshold=3000.0):
 
 
 # โหลดโมเดล
-if not os.path.exists("knn_model.npz"):
-    print("❌ ไม่พบไฟล์ knn_model.npz กรุณารัน train_knn.py ก่อน")
-    exit()
+if not os.path.exists(MODEL_PATH):
+    print("❌ ไม่พบไฟล์ knn_model.npz กรุณารัน FaceTrain_2.py ก่อน")
+    sys.exit(1)
 
-data = np.load("knn_model.npz")
+data = np.load(MODEL_PATH)
 X_train, y_train = data["X"], data["y"]
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# CAP_DSHOW เปิดกล้องเร็วกว่าบน Windows ส่วนระบบอื่นใช้ค่าเริ่มต้น
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) if os.name == "nt" else cv2.VideoCapture(0)
 
 while True:
     ret, frame = cap.read()

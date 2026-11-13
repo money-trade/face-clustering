@@ -2,8 +2,10 @@ import os
 import cv2
 import numpy as np
 
-# โฟลเดอร์ที่เก็บรูปภาพ
-DATASET_DIR = "ML_Data_Morning"
+# อ้างอิงไฟล์จากโฟลเดอร์ของสคริปต์ รันจากโฟลเดอร์ไหนก็ได้
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATASET_DIR = os.path.join(HERE, "ML_Data_Morning")   # โฟลเดอร์ที่เก็บรูปภาพ
+MODEL_PATH = os.path.join(HERE, "knn_model.npz")
 
 X_train, y_train = [], []
 
@@ -29,7 +31,7 @@ if os.path.exists(DATASET_DIR):
                 y_train.append(nickname)
 
     if len(X_train) > 0:
-        np.savez("knn_model.npz", X=np.array(X_train), y=np.array(y_train))
+        np.savez(MODEL_PATH, X=np.array(X_train), y=np.array(y_train))
         print(
             f"✅ อ่านรูปสำเร็จทั้งหมด {len(X_train)} รูป! บันทึกไฟล์ 'knn_model.npz' เรียบร้อย"
         )

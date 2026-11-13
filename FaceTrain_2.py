@@ -1,4 +1,5 @@
 import os
+import re
 import cv2
 import numpy as np
 
@@ -6,29 +7,40 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR = os.path.join(HERE, "ML_Data_Morning")   # โฟลเดอร์ที่เก็บรูปภาพ
 MODEL_PATH = os.path.join(HERE, "knn_model.npz")
+IMG_EXT = (".jpg", ".jpeg", ".png")
 
-X_train, y_train = [], []
+
+def split_name(filename):
+    """ "6752300046_Taer.jpg" -> ("6752300046", "Taer")
+    รองรับตัวคั่น _ ช่องว่าง หรือ - และนามสกุลซ้อน เช่น "6752300135_Mek.jpg.jpg" """
+    base = filename
+    while os.path.splitext(base)[1].lower() in IMG_EXT:
+        base = os.path.splitext(base)[0]
+    m = re.match(r"\s*(\d+)[\s_\-]+(.+?)\s*$", base)
+    return (m.group(1), m.group(2)) if m else ("", base.strip())
+
+
+X_train, y_train, ids = [], [], []
 
 print("กำลังอ่านรูปภาพจากโฟลเดอร์...")
 
 if os.path.exists(DATASET_DIR):
     for filename in os.listdir(DATASET_DIR):
         # รองรับไฟล์ .jpg, .jpeg, .png (ตัวพิมพ์เล็ก/ใหญ่)
-        if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        if filename.lower().endswith(IMG_EXT):
             img_path = os.path.join(DATASET_DIR, filename)
             x = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
             if x is not None:
                 X_train.append(x.flatten())
 
-                # แยกชื่อเล่นหลังเครื่องหมาย _ (เช่น "6752300151_Pae.jpg" -> "Pae")
-                name_part = os.path.splitext(filename)[0]
-                if "_" in name_part:
-                    nickname = name_part.split("_")[1].strip()
-                else:
-                    nickname = name_part.strip()
-
+                # แยกรหัสกับชื่อเล่น (เช่น "6752300151_Pae.jpg" -> "Pae")
+                sid, nickname = split_name(filename)
+                ids.append(sid)
                 y_train.append(nickname)
+
+    # ชื่อเล่นซ้ำกัน (เช่น First 2 คน) ต่อท้ายด้วยเลข 4 ตัวท้ายของรหัส -> First(0607), First(1115)
+    y_train = [f"{n}({s[-4:]})" if y_train.count(n) > 1 and s else n for n, s in zip(y_train, ids)]
 
     if len(X_train) > 0:
         np.savez(MODEL_PATH, X=np.array(X_train), y=np.array(y_train))
